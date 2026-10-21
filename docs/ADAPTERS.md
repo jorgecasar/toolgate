@@ -188,15 +188,16 @@ Each tier includes the one before. `computeTier` and `whatWouldRaise` (`src/capa
 | Agent       | `rules`                                 | `launchGating`  | `exclusiveMcpConfig` | `resume`               | `dynamicTools` | Tier |
 | :---------- | :-------------------------------------- | :-------------- | :------------------- | :--------------------- | :------------- | :--- |
 | Claude Code | `projectFile` `.claude/rules/toolgate-router.md` | `settingsFlag`  | true                 | `--continue`           | true           | 4    |
-| Codex CLI   | unknown                                 | `flagOverrides` | unknown              | unknown                | unknown        | 0    |
-| Antigravity | unknown                                 | `configFile`    | unknown              | unknown                | unknown        | 0    |
+| Codex CLI   | `projectFile` `AGENTS.md`               | `flagOverrides` | unknown              | unknown                | unknown        | 2    |
+| Antigravity | `projectFile` `.agents/rules/toolgate-router.md` | `configFile`    | unknown              | unknown                | unknown        | 2    |
 | Karajan     | unknown                                 | `none`          | unknown              | unknown                | unknown        | 0    |
-| opencode    | unknown                                 | `configFile` (`OPENCODE_CONFIG`) | unknown | `--continue`           | true           | 2    |
+| opencode    | `projectFile` `AGENTS.md`               | `configFile` (`OPENCODE_CONFIG`) | unknown | unknown                | true           | 2    |
 | generic     | unknown                                 | `configFile`    | unknown              | unknown                | unknown        | 0    |
 
-Tier 0 for Codex and Antigravity reflects what is verified, not what they cannot do: once their
-rules location is confirmed they reach tier 2. `opencode` declares only what is
-known (`OPENCODE_CONFIG`, `--continue`, and `dynamicTools`, checked live with opencode 1.18.4).
+Codex, Antigravity and opencode reach tier 2: each declares where the Step 0 rule goes and how a launch gates servers. What keeps
+them from tier 3 is `resume`, which is `unknown` (not verified, not known to be missing). Karajan and `generic` are at tier 0 because
+their rules location is `unknown`. `opencode` declares only what is known (`OPENCODE_CONFIG`, and `dynamicTools`, checked live
+with opencode 1.18.4); `toolgate doctor` and `toolgate init` print each agent's tier and `whatWouldRaise` says what would raise it.
 
 `generic` (`adapters/generic.js`) is driven by a spec, `{ bin, configFile, homeEnv, format: "json" | "toml",
 serversKey | tablePrefix }`: toolgate writes `configFile` under a per-launch temp root, points `homeEnv`

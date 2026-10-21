@@ -40,3 +40,24 @@ test("every doc that names the minimum Node says 20.6, which is what engines.nod
   assert.match(read(".toolgate", "skills", "architect-brief", "SKILL.md"), /ES modules, Node 20\.6 or later,/);
   for (const manifest of ["package.json", "packages/toolgate/package.json"]) assert.match(JSON.parse(read(manifest)).engines.node, /^>=20\.6$/, manifest);
 });
+test("ADAPTERS: the table of what each agent declares gives the tier, rules kind, launch gating, resume and dynamicTools the adapters declare", async () => {
+  const { computeTier } = await import("../src/capability.js");
+  const rows = new Map(doc("ADAPTERS.md").split("\n").filter((line) => line.startsWith("| ")).map((line) => {
+    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    return [cells[0], cells];
+  }));
+  const agents = { "Claude Code": "claude-code", "Codex CLI": "codex", Antigravity: "antigravity", Karajan: "karajan", opencode: "opencode", generic: "generic" };
+  const shown = (value) => (value === "unknown" ? "unknown" : String(value));
+  for (const [label, name] of Object.entries(agents)) {
+    const { capability } = await import(`../src/adapters/${name}.js`);
+    const cells = rows.get(label);
+    assert.ok(cells, `${label} has a row`);
+    const [, rules, gating, , resume, dynamic, tier] = cells;
+    assert.equal(tier, String(computeTier(capability)), `${label}: tier`);
+    assert.equal(dynamic, shown(capability.dynamicTools), `${label}: dynamicTools`);
+    assert.equal(rules.startsWith("`projectFile`"), capability.rules.kind === "projectFile", `${label}: rules kind`);
+    assert.equal(gating.startsWith(`\`${capability.launchGating}\``), true, `${label}: launchGating`);
+    assert.equal(resume === "unknown", capability.resume.supported === "unknown", `${label}: resume`);
+    if (capability.resume.supported === true) assert.equal(resume, `\`${capability.resume.arg}\``, `${label}: resume arg`);
+  }
+});
