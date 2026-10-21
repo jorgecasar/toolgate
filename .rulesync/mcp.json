@@ -1,0 +1,32 @@
+{
+  "$schema": "https://github.com/dyoshikawa/rulesync/releases/latest/download/mcp-schema.json",
+  "mcpServers": {
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp",
+      "env": {}
+    },
+    "rulesync": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["rulesync", "mcp"],
+      "env": {}
+    },
+    "qmd": {
+      "type": "http",
+      "url": "http://localhost:8181/mcp"
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "env": {}
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--isolated"],
+      "env": {}
+    }
+  }
+}

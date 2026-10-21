@@ -1,0 +1,18 @@
+{
+  "name": "toolgate-proxy",
+  "version": "0.1.0",
+  "description": "Dependency-free stdio proxy that filters an MCP server's tools/list response to an allow list.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "toolgate-proxy": "./bin/toolgate-proxy.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

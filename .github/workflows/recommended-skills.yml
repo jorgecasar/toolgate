@@ -1,0 +1,23 @@
+name: Recommended skills
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pins-exist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      # The scripts of the dependencies are not needed to read the list and check the pins.
+      - run: npm ci --ignore-scripts
+      # Fails the run (and so notifies the repository's watchers) when a pin is gone or a reviewed
+      # skill is missing; a network failure is printed as UNREACHABLE and does not fail it, unless no source could be reached at all. A deleted or private repository counts as broken, not as unreachable.
+      - run: node scripts/check-recommended.js

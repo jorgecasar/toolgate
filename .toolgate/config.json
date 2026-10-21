@@ -1,0 +1,21 @@
+{
+  "client": {
+    "defersToolSchemas": null
+  },
+  "router": {
+    "backend": "qmd"
+  },
+  "baseline": ["qmd"],
+  "keywords": {
+    "deepwiki": ["deepwiki"],
+    "context7": ["context7"]
+  },
+  "skills": {
+    "overrides": [
+      {
+        "skill": "browser-testing-with-devtools",
+        "mcps": ["chrome-devtools"]
+      }
+    ]
+  }
+}

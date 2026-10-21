@@ -1,0 +1,40 @@
+{
+  "name": "toolgate-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "postinstall": "sh scripts/postinstall.sh",
+    "setup": "rulesync generate && toolgate init --bridge && sh scripts/check-toolgate-path.sh",
+    "test": "npm test --workspaces --if-present && npm run test:e2e",
+    "coverage": "mkdir -p coverage && node --test --import ./packages/toolgate/test/support/hermetic.js --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info 'packages/*/test/**/*.test.js' 'test/e2e/**/*.test.js'",
+    "build": "npm run lint && npm test",
+    "lint": "eslint .",
+    "check:qmd-index": "sh scripts/check-qmd-index.sh",
+    "commitlint": "commitlint --edit",
+    "test:e2e": "node --test --import ./packages/toolgate/test/support/hermetic.js test/e2e/phase-0.test.js test/e2e/postinstall.test.js"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
+    "eslint": "9.39.5",
+    "rulesync": "^16.14.0"
+  },
+  "allowScripts": {
+    "better-sqlite3": false,
+    "esbuild": false,
+    "fsevents": false,
+    "node-llama-cpp": false,
+    "tree-sitter-go": false,
+    "tree-sitter-javascript": false,
+    "tree-sitter-python": false,
+    "tree-sitter-rust": false,
+    "tree-sitter-typescript": false,
+    "tldjs": false
+  }
+}

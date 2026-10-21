@@ -1,0 +1,20 @@
+{
+  "name": "toolgate-website",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The toolgate website: VitePress over the docs/ folder. Never published to npm.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.20"
+  },
+  "scripts": {
+    "predocs:dev": "node scripts/agents-table.mjs",
+    "docs:dev": "vitepress dev .",
+    "predocs:build": "node scripts/agents-table.mjs",
+    "docs:build": "vitepress build .",
+    "docs:preview": "vitepress preview ."
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4"
+  }
+}

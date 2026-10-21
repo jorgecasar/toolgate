@@ -1,0 +1,12 @@
+{
+  "agents": {
+    "antigravity": {
+      "adapter": "antigravity",
+      "description": "Antigravity CLI via agy binary"
+    },
+    "claude-code": {
+      "adapter": "claude-code",
+      "description": "Claude Code agent"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "toolgate",
+  "version": "0.1.0",
+  "description": "Launcher/orchestrator that computes the active MCP server/tool set and (re)starts an agent CLI with it applied.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "toolgate": "./bin/toolgate.js"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "test": "node --test --import ./test/support/hermetic.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.3.2"
+  },
+  "optionalDependencies": {
+    "@tobilu/qmd": "^2.5.3"
+  }
+}

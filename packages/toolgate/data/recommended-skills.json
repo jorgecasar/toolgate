@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "recommended": [
+    {
+      "id": "addyosmani/agent-skills",
+      "title": "Agent skills for the software lifecycle",
+      "source": "github:addyosmani/agent-skills",
+      "commit": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "path": "skills",
+      "license": "MIT",
+      "skills": [
+        "api-and-interface-design",
+        "browser-testing-with-devtools",
+        "ci-cd-and-automation",
+        "code-review-and-quality",
+        "code-simplification",
+        "constraint-driven-development",
+        "context-engineering",
+        "debugging-and-error-recovery",
+        "deprecation-and-migration",
+        "documentation-and-adrs",
+        "doubt-driven-development",
+        "frontend-ui-engineering",
+        "git-workflow-and-versioning",
+        "idea-refine",
+        "incremental-implementation",
+        "interview-me",
+        "observability-and-instrumentation",
+        "performance-optimization",
+        "planning-and-task-breakdown",
+        "security-and-hardening",
+        "shipping-and-launch",
+        "source-driven-development",
+        "spec-driven-development",
+        "test-driven-development"
+      ],
+      "exclude": [
+        "using-agent-skills"
+      ],
+      "overrides": [
+        {
+          "skill": "browser-testing-with-devtools",
+          "mcps": [
+            "chrome-devtools"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "config": {
+    "baseline": [
+      "repo"
+    ],
+    "keywords": {
+      "repo": [
+        "pull request"
+      ]
+    },
+    "toolBaselines": {},
+    "client": {},
+    "qmd": {},
+    "router": {},
+    "serverMeta": {},
+    "skills": {},
+    "commands": {},
+    "subagents": {},
+    "hooks": {},
+    "permissions": {},
+    "ignored": [
+      {
+        "key": "qmd.port",
+        "layer": "project",
+        "reason": "project"
+      },
+      {
+        "key": "router.qmdUrl",
+        "layer": "project",
+        "reason": "project"
+      },
+      {
+        "key": "router.qmdUrl",
+        "layer": "local",
+        "reason": "invalid"
+      }
+    ]
+  },
+  "origins": {
+    "baseline": [
+      "user",
+      "project"
+    ],
+    "keywords": [
+      "user"
+    ],
+    "keywords.repo": [
+      "user"
+    ],
+    "qmd": [
+      "project"
+    ],
+    "router": [
+      "project",
+      "local"
+    ]
+  },
+  "layers": [
+    {
+      "name": "user",
+      "path": "<DIR>/p/defaults.json",
+      "base": "<DIR>/p"
+    },
+    {
+      "name": "project",
+      "path": "<DIR>/p/.toolgate/config.json",
+      "base": "<DIR>/p"
+    },
+    {
+      "name": "local",
+      "path": "<DIR>/p/.toolgate/config.local.json",
+      "base": "<DIR>/p"
+    }
+  ]
+}
