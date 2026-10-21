@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { computeActiveServers } from "../activeSet.js";
 import { collectInstalled } from "../installed.js";
+import { parseJsonc } from "../jsonc.js";
+import { MAX_MCP_BYTES } from "../proxyEnv.js";
 import { buildToolEnv, launchStdio, projectRuleFile, readServerNames, toEnvVarName } from "./shared.js";
 import { linkInPath, sweepAgentFiles, writeAgentFiles } from "../subagents/register.js";
 import { COMMANDS_CAPABILITY } from "./commands.js";
@@ -13,8 +15,9 @@ import { SUBAGENTS_CAPABILITY } from "./subagents.js";
 export { buildToolEnv, toEnvVarName };
 
 // opencode loads tool schemas at launch (LAUNCHED class). `OPENCODE_CONFIG` points it at a config
-// file, so each launch gets a temp one with exactly the active servers. Rules location, resume, whether
-// the config replaces or merges with the user's, and tools/list_changed support are not verified.
+// file, so each launch gets a temp one with exactly the active servers. Rules location, resume and whether
+// the config replaces or merges with the user's are not verified. `dynamicTools` is: verified live with opencode 1.18.4, a tool
+// enabled mid-session was called in the same run, and a local server inherits opencode's env (the session path reaches it).
 export const capability = Object.freeze({
   commands: COMMANDS_CAPABILITY["opencode"],
   subagents: SUBAGENTS_CAPABILITY["opencode"],
@@ -25,7 +28,7 @@ export const capability = Object.freeze({
   launchGating: "configFile",
   exclusiveMcpConfig: "unknown",
   resume: Object.freeze({ supported: "unknown" }),
-  dynamicTools: "unknown",
+  dynamicTools: true,
   passthrough: "args",
 });
 export const supportsResume = false;
@@ -45,6 +48,66 @@ function parseServers(raw) {
 
 export function readServers(configPath, { readFileFn = fs.readFileSync } = {}) {
   return readServerNames(configPath, parseServers, readFileFn);
+}
+
+// A config file as text, or null: never through a symbolic link, only a regular file, and not past the size toolgate reads in other MCP files.
+function readConfigFile(file) {
+  let fd;
+  try {
+    fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NONBLOCK | (fs.constants.O_NOFOLLOW ?? 0));
+    const stat = fs.fstatSync(fd);
+    return stat.isFile() && stat.size <= MAX_MCP_BYTES ? fs.readFileSync(fd, "utf8") : null;
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
+const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+
+// `mcp.<n>` as `{ command, args, env }`: a local server whose `command` is a list of words. Any other form is not recognized (null).
+function localServer(entry) {
+  if (!isObject(entry) || entry.type !== "local" || !Array.isArray(entry.command) || entry.command.length === 0) return null;
+  if (!entry.command.every((word) => typeof word === "string")) return null;
+  const [command, ...args] = entry.command;
+  const env = isObject(entry.environment) ? Object.fromEntries(Object.entries(entry.environment).filter(([, value]) => typeof value === "string")) : {};
+  return { command, args, env };
+}
+
+/**
+ * The local servers opencode's config defines for a launch, `{ name: { command, args, env } }`. opencode merges the files it reads, the
+ * later one winning. The order was measured live with opencode 1.18.4 (the same server under a different label at each level, the winner
+ * removed on each run), lowest priority first: the global `opencode.json(c)` in `$XDG_CONFIG_HOME/opencode` (`~/.config/opencode`), the file
+ * `OPENCODE_CONFIG` names, the project's, and `~/.opencode`, which wins over all of them. A server is taken whole from the last file that
+ * names it, and an entry there that is not a local server with a `command` list removes the earlier one. A file that is a link, not a
+ * regular file, too big or not valid JSONC is skipped.
+ * Not verified, so not done: whether a later level that defines only part of a server (say only `environment`) merges key by key with the
+ * earlier one or replaces it (taking it whole is the safe reading: a server that is not well formed is not read); `.opencode/opencode.json`
+ * inside the project; the climb of folders up to the git root.
+ */
+export function definedServers({ cwd = process.cwd(), homedir = os.homedir(), env = process.env } = {}) {
+  const config = env.XDG_CONFIG_HOME && path.isAbsolute(env.XDG_CONFIG_HOME) ? env.XDG_CONFIG_HOME : path.join(homedir, ".config");
+  const both = (dir) => [path.join(dir, "opencode.json"), path.join(dir, "opencode.jsonc")];
+  const files = [...both(path.join(config, "opencode")), ...(env.OPENCODE_CONFIG ? [path.resolve(cwd, env.OPENCODE_CONFIG)] : []), ...both(cwd), ...both(path.join(homedir, ".opencode"))];
+  const servers = new Map();
+  for (const file of files) {
+    const text = readConfigFile(file);
+    if (text === null) continue;
+    let mcp;
+    try {
+      mcp = parseJsonc(text)?.mcp;
+    } catch {
+      continue;
+    }
+    if (!isObject(mcp)) continue;
+    for (const [name, entry] of Object.entries(mcp)) {
+      const server = localServer(entry);
+      if (server) servers.set(name, server);
+      else servers.delete(name);
+    }
+  }
+  return Object.fromEntries(servers);
 }
 
 export function installedServers({ cwd = process.cwd(), homedir = os.homedir(), readFileFn = fs.readFileSync } = {}) {

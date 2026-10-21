@@ -191,12 +191,12 @@ Each tier includes the one before. `computeTier` and `whatWouldRaise` (`src/capa
 | Codex CLI   | unknown                                 | `flagOverrides` | unknown              | unknown                | unknown        | 0    |
 | Antigravity | unknown                                 | `configFile`    | unknown              | unknown                | unknown        | 0    |
 | Karajan     | unknown                                 | `none`          | unknown              | unknown                | unknown        | 0    |
-| opencode    | unknown                                 | `configFile` (`OPENCODE_CONFIG`) | unknown | `--continue`           | unknown        | 0    |
+| opencode    | unknown                                 | `configFile` (`OPENCODE_CONFIG`) | unknown | `--continue`           | true           | 0    |
 | generic     | unknown                                 | `configFile`    | unknown              | unknown                | unknown        | 0    |
 
 Tier 0 for Codex and Antigravity reflects what is verified, not what they cannot do: once their
 rules location is confirmed they reach tier 2. `opencode` declares only what is
-known (`OPENCODE_CONFIG` and `--continue`).
+known (`OPENCODE_CONFIG`, `--continue`, and `dynamicTools`, checked live with opencode 1.18.4).
 
 `generic` (`adapters/generic.js`) is driven by a spec, `{ bin, configFile, homeEnv, format: "json" | "toml",
 serversKey | tablePrefix }`: toolgate writes `configFile` under a per-launch temp root, points `homeEnv`
