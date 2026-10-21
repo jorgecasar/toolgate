@@ -324,6 +324,28 @@ export function checkClaudeSettings(ctx) {
   return findings;
 }
 
+// opencode's own config (when opencode is on the PATH): the servers it defines that toolgate-proxy does not wrap cannot have tools revealed in
+// a session, as in `mcp.baseline` for .mcp.json, and a config file that is a symbolic link is not read, so what it defines is not seen.
+export function checkOpencodeConfig(ctx) {
+  const agent = ctx.agents.find(({ name }) => name === "opencode");
+  if (!agent) return [];
+  const options = { cwd: ctx.cwd, homedir: ctx.homedir ?? os.homedir(), env: ctx.env ?? process.env };
+  const findings = [];
+  // A file as the user knows it: relative to the project, or under `~`.
+  const where = (file) => (file.startsWith(`${options.cwd}${path.sep}`) ? path.relative(options.cwd, file) : file.startsWith(`${options.homedir}${path.sep}`) ? `~${path.sep}${path.relative(options.homedir, file)}` : file);
+  for (const file of agent.adapter.linkedConfigFiles(options)) {
+    findings.push(warn("opencode.config", `${printable(where(file))} is a symbolic link; toolgate does not read it, so its servers were not checked`, "toolgate never follows a link: put the servers in a regular file"));
+  }
+  for (const [name, def] of Object.entries(agent.adapter.definedServers(options))) {
+    if (!isProxied(def)) {
+      findings.push(warn("mcp.dynamic", `${printable(name)} (opencode) is not wrapped by toolgate-proxy, so its tools cannot be revealed without a restart`, 'wrap it with toolgate-proxy: "command": ["toolgate-proxy"] and the server it runs in "environment" (docs/getting-started.md, "Reveal tools without a restart")'));
+    } else if (!namesItsServer(def, name)) {
+      findings.push(warn("mcp.dynamic", `${printable(name)} (opencode) is wrapped by toolgate-proxy but its entry does not set TOOLGATE_SERVER to "${printable(name)}", so its tools cannot be revealed without a restart`, 'add "TOOLGATE_SERVER": "<the server name>" to its "environment" (docs/getting-started.md, "Reveal tools without a restart")'));
+    }
+  }
+  return findings;
+}
+
 export function checkUserServers(ctx) {
   if (ctx.config.client?.exclusiveMcp === true) {
     return [ok("mcp.userLevel", "client.exclusiveMcp is on: only the active servers load")];

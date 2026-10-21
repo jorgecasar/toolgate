@@ -191,7 +191,7 @@ Each tier includes the one before. `computeTier` and `whatWouldRaise` (`src/capa
 | Codex CLI   | unknown                                 | `flagOverrides` | unknown              | unknown                | unknown        | 0    |
 | Antigravity | unknown                                 | `configFile`    | unknown              | unknown                | unknown        | 0    |
 | Karajan     | unknown                                 | `none`          | unknown              | unknown                | unknown        | 0    |
-| opencode    | unknown                                 | `configFile` (`OPENCODE_CONFIG`) | unknown | `--continue`           | true           | 0    |
+| opencode    | unknown                                 | `configFile` (`OPENCODE_CONFIG`) | unknown | `--continue`           | true           | 2    |
 | generic     | unknown                                 | `configFile`    | unknown              | unknown                | unknown        | 0    |
 
 Tier 0 for Codex and Antigravity reflects what is verified, not what they cannot do: once their

@@ -23,6 +23,7 @@ import {
   checkSkills,
   checkStrayPins,
   checkClaudeSettings,
+  checkOpencodeConfig,
   checkUserServers,
   readJsonFile,
 } from "./checks.js";
@@ -43,6 +44,7 @@ const CHECKS = [
   ["hooks", checkHooks],
   ["claude.guardsOff", checkGuardsOff],
   ["claude.settings", checkClaudeSettings],
+  ["opencode.config", checkOpencodeConfig],
   ["catalog", checkCatalog],
   ["config", checkIgnored],
   ["permissions", checkPermissions],
