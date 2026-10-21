@@ -155,3 +155,70 @@ test("jsonc: comments and trailing commas go, strings stay, an unterminated comm
   const hostile = `[${"[1,],".repeat(300000)}]`;
   assert.equal(parseJsonc(hostile).length, 300000);
 });
+
+// What stripJsonc was before it kept the text in stretches: one piece per character, blanking the comma in the output.
+function perCharacter(text) {
+  const out = [];
+  let i = 0;
+  let comma = -1;
+  while (i < text.length) {
+    const char = text[i];
+    if (char === '"') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== '"') j += text[j] === "\\" ? 2 : 1;
+      out.push(text.slice(i, j + 1));
+      i = j + 1;
+      comma = -1;
+    } else if (char === "/" && text[i + 1] === "/") {
+      const end = text.indexOf("\n", i);
+      i = end === -1 ? text.length : end;
+    } else if (char === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      if (end === -1) throw new SyntaxError("unterminated comment");
+      i = end + 2;
+    } else {
+      if (char === ",") comma = out.length;
+      else if ((char === "}" || char === "]") && comma !== -1) {
+        out[comma] = "";
+        comma = -1;
+      } else if (!" \t\n\r".includes(char)) comma = -1;
+      out.push(char);
+      i += 1;
+    }
+  }
+  return out.join("");
+}
+
+test("jsonc: the text in stretches gives what one piece per character gave, on fixed and generated texts", () => {
+  const fixed = ['{"a":[1,2,],/*x*/"b":"//,]",}', '[1,/*c*/]', '[1, // c\n]', '{"a":1,,}', '"x\\"', '"unterminated', 'a\\', "/", "/ /", "[,]", '{"k":"v"} // end', "[1,\n\n]", '["/*",]'];
+  let seed = 12345;
+  const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648);
+  const alphabet = ['{', '}', '[', ']', ',', '"', '/', '*', '\\', ' ', '\n', 'a', '1', ':'];
+  const generated = Array.from({ length: 3000 }, () => Array.from({ length: 1 + (next() % 24) }, () => alphabet[next() % alphabet.length]).join(""));
+  for (const text of [...fixed, ...generated]) {
+    let expected;
+    try {
+      expected = perCharacter(text);
+    } catch (error) {
+      assert.throws(() => stripJsonc(text), { name: error.name }, JSON.stringify(text));
+      continue;
+    }
+    assert.equal(stripJsonc(text), expected, JSON.stringify(text));
+  }
+});
+
+test("jsonc: the memory is the text's, not one piece per character (a text with no comment or comma is put in a few pieces)", () => {
+  const text = `["${"x".repeat(1024 * 1024)}", ${"1 ".repeat(100000)}]`;
+  const push = Array.prototype.push;
+  let pushes = 0;
+  Array.prototype.push = function counting(...items) {
+    pushes += 1;
+    return push.apply(this, items);
+  };
+  try {
+    assert.equal(stripJsonc(text), text);
+  } finally {
+    Array.prototype.push = push;
+  }
+  assert.ok(pushes < 10, `${pushes} pieces`);
+});

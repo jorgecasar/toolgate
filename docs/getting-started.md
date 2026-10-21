@@ -456,11 +456,11 @@ toolgate escalate repo mergePullRequest         # bring one back: it is present 
 ```
 
 ## Reveal tools without a restart
-With Claude Code, a server behind `toolgate-proxy` can start a session showing only the tools it needs, and show more of its tools in the
-same session, with no restart. Claude Code loads the names of a server's tools and its instructions at the start; this keeps the ones you did
+With Claude Code or opencode, a server behind `toolgate-proxy` can start a session showing only the tools it needs, and show more of its tools in the
+same session, with no restart. The agent loads the names of a server's tools and its instructions at the start; this keeps the ones you did
 not ask for out of that first load.
 
-It works when toolgate launches Claude Code (`toolgate "<task>"` or `toolgate claude`) and an active server is wrapped by the proxy. Wrap it
+It works when toolgate launches the agent (`toolgate "<task>"`, with opencode as the default agent or `--adapter opencode`; or `toolgate claude` for Claude Code) and an active server is wrapped by the proxy. Wrap it
 as above, and give the proxy the name of the server and the session file toolgate makes:
 ```json
 {
@@ -478,6 +478,28 @@ as above, and give the proxy the name of the server and the session file toolgat
   }
 }
 ```
+In opencode the server is defined in `opencode.json` (or `opencode.jsonc`) with `type: "local"`, `command` as a list and `environment`:
+```json
+{
+  "mcp": {
+    "repo": {
+      "type": "local",
+      "command": ["toolgate-proxy"],
+      "environment": {
+        "TOOLGATE_UPSTREAM_CMD": "npx",
+        "TOOLGATE_UPSTREAM_ARGS": "[\"-y\", \"@acme/repo-mcp\"]",
+        "TOOLGATE_SERVER": "repo"
+      }
+    }
+  }
+}
+```
+opencode passes its own environment to a local server, so the session file reaches the proxy without listing `TOOLGATE_SESSION_STATE`.
+opencode names a server's tools `<server>_<tool>` (`repo_list_issues`); `toolgate tools enable` and `need` take the server's own tool name (`list_issues`).
+toolgate reads these files, the last one that names a server winning (the order was measured with opencode 1.18.4): `$XDG_CONFIG_HOME/opencode/opencode.json(c)`
+(`~/.config/opencode` without it), the file `OPENCODE_CONFIG` names, the project's `opencode.json(c)`, and `~/.opencode/opencode.json(c)`. A file that is a symbolic
+link is never followed, so what it defines is not seen and its servers are revealed only by a restart; `toolgate doctor` names such a file.
+
 `TOOLGATE_SESSION_STATE` is inherited from the launcher's environment (Claude Code passes it to the server even if the entry does not list it, so listing it is optional; the entry above does it with `${...:-}` to make the empty default explicit). It is empty outside a toolgate launch, and then the proxy is the static one of the section above. In a launch,
 toolgate writes a small file for the session in `$XDG_STATE_HOME/toolgate/sessions/` (`~/.local/state/toolgate/sessions/` without it; the folder
 is mode 700, the file 600, and both are the user's own) and removes it when the agent ends. A new session starts from nothing revealed; a
@@ -493,13 +515,14 @@ available. The server's own instructions are then kept out of Claude Code's firs
   relaunch already offers them.
 - `toolgate tools enable <server> <tool…>`, `disable <server> [tool...]`, `status [server] [--json]` and `reset [server]` change it by hand. A tool
   of `toolBaselines` always stays. `disable` and `reset` only stop a tool from being offered: one already used stays in the conversation.
-- `toolgate doctor` warns about each server in `.mcp.json` that the proxy does not wrap, or wraps without `TOOLGATE_SERVER` set to the server's name (its tools cannot be revealed without a restart; `need` says `restart-required` for it, and the launcher leaves it out of the session), and
+- `toolgate doctor` warns about each server in `.mcp.json` (and in opencode's config, when opencode is installed) that the proxy does not wrap, or wraps without `TOOLGATE_SERVER` set to the server's name (its tools cannot be revealed without a restart; `need` says `restart-required` for it, and the launcher leaves it out of the session), and
   errors on an entry that still uses the old `UPSTREAM_CMD`, `UPSTREAM_ARGS` or `ALLOWED_TOOLS` names (`toolgate update` renames them).
 
 Known limits:
 - **Hiding is not a security boundary.** A tool that is not offered can still be called by a client that knows its name; the proxy only
   filters `tools/list`. What an agent may do is decided by permissions (`toolgate permissions`), not by what is offered.
-- Only Claude Code supports it (an adapter with `dynamicTools: true`). Other agents keep `restart-required` and are told once.
+- Only Claude Code (verified with 2.1.304) and opencode (verified live with 1.18.4) support it (an adapter with `dynamicTools: true`). Other agents keep `restart-required` and are told once.
+- For opencode, not verified: whether a file that defines only part of a server (say only `environment`) is merged key by key with an earlier one or replaces it (toolgate takes the server whole from the last file that names it, and reads one that is not well formed as not there); `.opencode/opencode.json` inside the project; and the folders above the project up to the git root. The live check used a server with no tool baseline (only `toolgate_status` was offered).
 - The folder of the session files is worked out from the proxy's own `XDG_STATE_HOME` and `HOME`. A `.mcp.json` of a repository can set them
   for its own servers, as it already chooses the command it runs; the proxy still checks that the file is a plain file of the user's, closed
   to others, inside that folder, with a session's name.

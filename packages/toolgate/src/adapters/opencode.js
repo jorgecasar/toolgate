@@ -76,6 +76,28 @@ function localServer(entry) {
 }
 
 /**
+ * The config files opencode reads for a launch, lowest priority first (the order is measured: see `definedServers`): the global
+ * `opencode.json(c)` in `$XDG_CONFIG_HOME/opencode` (`~/.config/opencode` when it is unset or relative), the file `OPENCODE_CONFIG` names,
+ * the project's, and `~/.opencode`. In each folder `opencode.json`, then `opencode.jsonc`.
+ */
+export function configFiles({ cwd = process.cwd(), homedir = os.homedir(), env = process.env } = {}) {
+  const config = env.XDG_CONFIG_HOME && path.isAbsolute(env.XDG_CONFIG_HOME) ? env.XDG_CONFIG_HOME : path.join(homedir, ".config");
+  const both = (dir) => [path.join(dir, "opencode.json"), path.join(dir, "opencode.jsonc")];
+  return [...both(path.join(config, "opencode")), ...(env.OPENCODE_CONFIG ? [path.resolve(cwd, env.OPENCODE_CONFIG)] : []), ...both(cwd), ...both(path.join(homedir, ".opencode"))];
+}
+
+/** The config files that are symbolic links: `definedServers` never follows one, so what they define is not seen. */
+export function linkedConfigFiles(options) {
+  return configFiles(options).filter((file) => {
+    try {
+      return fs.lstatSync(file, { throwIfNoEntry: false })?.isSymbolicLink() === true;
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
  * The local servers opencode's config defines for a launch, `{ name: { command, args, env } }`. opencode merges the files it reads, the
  * later one winning. The order was measured live with opencode 1.18.4 (the same server under a different label at each level, the winner
  * removed on each run), lowest priority first: the global `opencode.json(c)` in `$XDG_CONFIG_HOME/opencode` (`~/.config/opencode`), the file
@@ -86,12 +108,9 @@ function localServer(entry) {
  * earlier one or replaces it (taking it whole is the safe reading: a server that is not well formed is not read); `.opencode/opencode.json`
  * inside the project; the climb of folders up to the git root.
  */
-export function definedServers({ cwd = process.cwd(), homedir = os.homedir(), env = process.env } = {}) {
-  const config = env.XDG_CONFIG_HOME && path.isAbsolute(env.XDG_CONFIG_HOME) ? env.XDG_CONFIG_HOME : path.join(homedir, ".config");
-  const both = (dir) => [path.join(dir, "opencode.json"), path.join(dir, "opencode.jsonc")];
-  const files = [...both(path.join(config, "opencode")), ...(env.OPENCODE_CONFIG ? [path.resolve(cwd, env.OPENCODE_CONFIG)] : []), ...both(cwd), ...both(path.join(homedir, ".opencode"))];
+export function definedServers(options = {}) {
   const servers = new Map();
-  for (const file of files) {
+  for (const file of configFiles(options)) {
     const text = readConfigFile(file);
     if (text === null) continue;
     let mcp;
