@@ -14,18 +14,21 @@ export const REFRESH_MS = 60 * 60 * 1000;
  * The active servers whose entry in the project's .mcp.json runs through toolgate-proxy, each with the baseline the proxy is started
  * with (the list the adapter passes as its allowed tools; empty when the config sets none for the server).
  */
-export function wrappedServers({ config, state, prompt, mcpJsonPath, readFileFn = fs.readFileSync }) {
-  return wrappedActive({ config, state, prompt, mcpJsonPath, readFileFn }).map((server) => ({
+export function wrappedServers({ config, state, prompt, mcpJsonPath, readFileFn = fs.readFileSync, adapter, cwd, homedir, env }) {
+  return wrappedActive({ config, state, prompt, mcpJsonPath, readFileFn, adapter, cwd, homedir, env }).map((server) => ({
     server,
     baseline: Object.hasOwn(config?.toolBaselines ?? {}, server) ? [...computeActiveTools(config, state, server)] : [],
   }));
 }
 
-/** The active servers whose entry in the project's .mcp.json runs through toolgate-proxy and sets TOOLGATE_SERVER to its own name, by name. */
-export function wrappedActive({ config, state, prompt, mcpJsonPath, readFileFn = fs.readFileSync }) {
+/**
+ * The active servers whose entry runs through toolgate-proxy and sets TOOLGATE_SERVER to its own name, by name. The entries are the ones the
+ * agent's adapter says it defines (`definedServers`; an adapter without the hook defines none); with no adapter, the project's .mcp.json.
+ */
+export function wrappedActive({ config, state, prompt, mcpJsonPath, readFileFn = fs.readFileSync, adapter, cwd, homedir, env }) {
   let servers;
   try {
-    servers = JSON.parse(readFileFn(mcpJsonPath, "utf8")).mcpServers;
+    servers = adapter ? adapter.definedServers?.({ cwd, homedir, env, readFileFn }) : JSON.parse(readFileFn(mcpJsonPath, "utf8")).mcpServers;
   } catch {
     return [];
   }

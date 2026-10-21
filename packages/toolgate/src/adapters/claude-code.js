@@ -80,6 +80,15 @@ export function readServers(mcpJsonPath, { readFileFn = fs.readFileSync } = {}) 
   return Object.keys(readJson(mcpJsonPath, readFileFn).mcpServers ?? {});
 }
 
+/**
+ * The servers this agent has defined for the launch, `{ name: { command, args, env } }` as its config spells them: the project's .mcp.json.
+ * Nothing readable, or not an object of servers, is `{}`.
+ */
+export function definedServers({ cwd = process.cwd(), readFileFn = fs.readFileSync } = {}) {
+  const servers = readJson(path.join(cwd, ".mcp.json"), readFileFn).mcpServers;
+  return servers !== null && typeof servers === "object" && !Array.isArray(servers) ? servers : {};
+}
+
 const parseMcpServers = (raw) => Object.keys(JSON.parse(raw).mcpServers ?? {});
 
 // ~/.claude.json holds user-scope servers at the top level and local-scope ones per project.
