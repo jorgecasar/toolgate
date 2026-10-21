@@ -73,6 +73,7 @@ with its name and every field that breaks the contract. Contract tests
 | :------------------------------------ | :-------------------------------------------------------------------------- |
 | `capability`                          | frozen object, see below                                                    |
 | `readServers(path)`                   | server names the agent has configured                                       |
+| `definedServers({ cwd, homedir, env })` | optional: `{ name: { command, args, env } }`, the servers the agent's config defines for this launch (`{}` when none, or when absent); toolgate looks in them for the ones it can reveal tools of without a restart |
 | `applyServers(active, …)`             | pure: what makes exactly the `active` set apply (settings, config text, env) |
 | `installDiscovery({ cwd, template })` | where the Step 0 rule goes (`{ file, content }`), or `null` if `rules` is not `projectFile` |
 | `buildToolEnv(config, state, active)` | env for the proxies                                                         |

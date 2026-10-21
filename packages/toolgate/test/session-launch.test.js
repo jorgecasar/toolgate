@@ -147,6 +147,40 @@ test("the file is touched every hour while the agent runs, with an unref'd timer
   assert.equal(cleared.length, 1);
 });
 
+test("wrappedActive: the servers are the ones the adapter defines, read with the launch's folders, not the .mcp.json file", () => {
+  const cwd = tmp();
+  mcpJson(cwd, { fromFile: PROXY });
+  const seen = [];
+  const entry = (name) => ({ command: "toolgate-proxy", env: { TOOLGATE_UPSTREAM_CMD: "x", TOOLGATE_SERVER: name } });
+  const adapter = { definedServers: (options) => (seen.push(options), { fromAdapter: entry("fromAdapter"), unmarked: { command: "toolgate-proxy" } }) };
+  const config = { baseline: ["fromFile", "fromAdapter", "unmarked"] };
+  const env = { HOME: "h" };
+  const mcpJsonPath = path.join(cwd, ".mcp.json");
+  assert.deepEqual(wrappedActive({ config, state: idle, prompt: "", mcpJsonPath, adapter, cwd, homedir: "/home/x", env }), ["fromAdapter"]);
+  assert.equal(seen.length, 1);
+  assert.deepEqual([seen[0].cwd, seen[0].homedir, seen[0].env], [cwd, "/home/x", env]);
+  assert.deepEqual(wrappedServers({ config, state: idle, prompt: "", mcpJsonPath, adapter, cwd, env }), named(["fromAdapter"]));
+  // An adapter with no hook defines nothing (its file is not read for it), and one that fails or answers with no servers defines none.
+  assert.deepEqual(wrappedActive({ config, state: idle, prompt: "", mcpJsonPath, adapter: {}, cwd }), []);
+  for (const definedServers of [() => { throw new Error("boom"); }, () => null, () => undefined, () => "x", () => []]) {
+    assert.deepEqual(wrappedActive({ config, state: idle, prompt: "", mcpJsonPath, adapter: { definedServers }, cwd }), []);
+  }
+});
+
+test("claude-code definedServers: the servers of the project's .mcp.json, as it spells them, and {} for anything else", () => {
+  const cwd = tmp();
+  assert.deepEqual(claude.definedServers({ cwd }), {}, "no file");
+  mcpJson(cwd, { repo: PROXY, plain: { command: "node", args: ["a"] } });
+  const defined = claude.definedServers({ cwd, homedir: tmp("home"), env: {} });
+  assert.deepEqual(Object.keys(defined), ["repo", "plain"]);
+  assert.deepEqual(defined.plain, { command: "node", args: ["a"] });
+  assert.deepEqual(defined.repo, JSON.parse(fs.readFileSync(path.join(cwd, ".mcp.json"), "utf8")).mcpServers.repo);
+  for (const content of ["{not json", "[]", "null", '{"mcpServers":null}', '{"mcpServers":[]}', '{"mcpServers":"x"}']) {
+    fs.writeFileSync(path.join(cwd, ".mcp.json"), content);
+    assert.deepEqual(claude.definedServers({ cwd }), {}, content);
+  }
+});
+
 test("the sweep runs at the start: an old session file of this user goes, a young one stays", () => {
   const { env, session } = launcher();
   const oldOne = createSession(["x"], { env });
@@ -173,7 +207,7 @@ test("close removes the file and its instructions files; a pending restart keeps
 });
 
 // The launch loop of cli.js with a fake agent, as in supervisor.test.js: each launch is recorded with what the file looked like then.
-function setup({ servers = { repo: PROXY }, baseline = ["repo"], capability = claude.capability, escalate = (n) => n === 0, maxRestarts } = {}) {
+function setup({ servers = { repo: PROXY }, baseline = ["repo"], capability = claude.capability, escalate = (n) => n === 0, maxRestarts, adapterHooks = {} } = {}) {
   const cwd = tmp("cwd");
   mcpJson(cwd, servers);
   const env = { XDG_STATE_HOME: tmp("xdg"), HOME: tmp("home") };
@@ -181,6 +215,7 @@ function setup({ servers = { repo: PROXY }, baseline = ["repo"], capability = cl
   const disk = { ...idle };
   const adapter = {
     ...claude,
+    ...adapterHooks,
     capability,
     supportsResume: true,
     launch: async (first, second) => {
@@ -218,6 +253,18 @@ test("the wrapper path: the agent gets the path, a relaunch gets the same one, a
   assert.deepEqual(calls.map((call) => call.existsDuring), [true, true]);
   assert.equal(fs.existsSync(calls[0].file), false, "gone at the end");
   assert.deepEqual(fs.readdirSync(sessionsRoot({ env })), []);
+});
+
+test("both launch paths ask the adapter for its defined servers: one that defines a wrapped server gets a session, one without the hook gets none", async () => {
+  const entry = { command: "toolgate-proxy", env: { TOOLGATE_UPSTREAM_CMD: "x", TOOLGATE_SERVER: "elsewhere" } };
+  for (const argv of [["--no-route", "claude"], ["--no-route", "--adapter", "claude", "hola"]]) {
+    const defined = setup({ servers: {}, baseline: ["elsewhere"], escalate: () => false, adapterHooks: { definedServers: () => ({ elsewhere: entry }) } });
+    await run(argv, defined.deps);
+    assert.ok(defined.calls[0].file?.startsWith(sessionsRoot({ env: defined.env })), argv.join(" "));
+    const without = setup({ servers: { repo: PROXY }, escalate: () => false, adapterHooks: { definedServers: undefined } });
+    await run(argv, without.deps);
+    assert.equal(without.calls[0].file, undefined, argv.join(" "));
+  }
 });
 
 test("no wrapped active server: no env, no folder, and the active set is the one of today", async () => {

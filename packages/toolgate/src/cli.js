@@ -703,7 +703,7 @@ async function runCommand(argv, deps) {
   const applied = approvedForLaunch({ adapterModule, config, cwd, env: deps.env ?? process.env, stderr, copyUnits: deps.hookCopier });
   const mcpJsonPath = path.join(cwd, ".mcp.json");
   const session = sessionFor({ capability: adapterModule.capability, agent: known.canonical(agent), stderr, env: deps.env ?? process.env, projectDir: cwd, setIntervalFn: deps.setIntervalFn, clearIntervalFn: deps.clearIntervalFn });
-  const sessionEnv = session.open(wrappedServers({ config, state: routing.state, prompt: routing.prompt, mcpJsonPath }));
+  const sessionEnv = session.open(wrappedServers({ config, state: routing.state, prompt: routing.prompt, mcpJsonPath, adapter: adapterModule, cwd, homedir: deps.catalog?.homedir, env: deps.env ?? process.env }));
   const stopWatching = session.watch();
   let result;
   try {
@@ -901,7 +901,7 @@ async function runAgent({ before, agent, after }, ctx) {
     const consumed = state.pendingRestart ? consumeEscalations(state) : undefined;
     if (consumed) saveStateFn(statePath, consumed);
     const applied = approvedForLaunch({ adapterModule, config, cwd, env, stderr, copyUnits: deps.hookCopier });
-    const sessionEnv = session.open(wrappedServers({ config, state: routing.state, prompt: resume ? undefined : prompt, mcpJsonPath: launchOptions.mcpJsonPath }));
+    const sessionEnv = session.open(wrappedServers({ config, state: routing.state, prompt: resume ? undefined : prompt, mcpJsonPath: launchOptions.mcpJsonPath, adapter: adapterModule, cwd, homedir: deps.catalog?.homedir, env }));
     const stopWatching = session.watch();
     let result;
     try {
