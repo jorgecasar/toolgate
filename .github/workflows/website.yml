@@ -37,11 +37,8 @@ jobs:
       # Only these two workspaces: the site's generator reads the adapters of packages/toolgate, which need their dependencies.
       # `CI` is set, so the postinstall skips the local setup.
       - run: npm ci --workspace packages/website --workspace packages/toolgate
-      # Temporary: Pages is not on until the owner turns it on, and the build must pass without it, so this step may fail and the
-      # base path then stays the one in site.config.json. Remove `continue-on-error` once Pages is on.
       - id: pages
         if: github.event_name != 'pull_request'
-        continue-on-error: true
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       # A dead link fails this step, on a pull request too.
       - run: npm run -s docs:build --workspace packages/website
