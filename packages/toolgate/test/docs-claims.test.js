@@ -52,9 +52,10 @@ test("ADAPTERS: the table of what each agent declares gives the tier, rules kind
     const { capability } = await import(`../src/adapters/${name}.js`);
     const cells = rows.get(label);
     assert.ok(cells, `${label} has a row`);
-    const [, rules, gating, , resume, dynamic, tier] = cells;
+    const [, rules, gating, exclusive, resume, dynamic, tier] = cells;
     assert.equal(tier, String(computeTier(capability)), `${label}: tier`);
     assert.equal(dynamic, shown(capability.dynamicTools), `${label}: dynamicTools`);
+    assert.equal(exclusive, shown(capability.exclusiveMcpConfig), `${label}: exclusiveMcpConfig`);
     assert.equal(rules.startsWith("`projectFile`"), capability.rules.kind === "projectFile", `${label}: rules kind`);
     assert.equal(gating.startsWith(`\`${capability.launchGating}\``), true, `${label}: launchGating`);
     assert.equal(resume === "unknown", capability.resume.supported === "unknown", `${label}: resume`);
